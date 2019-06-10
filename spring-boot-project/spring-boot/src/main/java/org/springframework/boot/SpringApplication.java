@@ -267,7 +267,9 @@ public class SpringApplication {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 判断Spring是哪个web类型程序（None, Servlet, WebFlux）
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		// 这里去初始化spring.factories
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
 		this.mainApplicationClass = deduceMainApplicationClass();
@@ -295,6 +297,7 @@ public class SpringApplication {
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+		// StopWatch用来统计SpringBoot启动的时长、Task信息等内容
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
@@ -304,20 +307,29 @@ public class SpringApplication {
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			// 加载Properties文件,包括application.properties和外部配置
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 			configureIgnoreBeanInfo(environment);
+			// 打印Spring Banner
 			Banner printedBanner = printBanner(environment);
+			// 根据this.webApplicationType类型创建对应类型的ApplicationContext
 			context = createApplicationContext();
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+			// 初始化Spring容器
 			refreshContext(context);
+			// 执行Spring容器的初始化的后置逻辑。默认实现为空。
 			afterRefresh(context, applicationArguments);
+			// 停止信息统计
 			stopWatch.stop();
+			// 打印启动信息
 			if (this.logStartupInfo) {
 				new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
 			}
+			// 通知监听器，容器已启动
 			listeners.started(context);
+			// 回调ApplicationRunner 或者 CommandLineRunner的run方法
 			callRunners(context, applicationArguments);
 		}
 		catch (Throwable ex) {
@@ -365,6 +377,7 @@ public class SpringApplication {
 			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
 		context.setEnvironment(environment);
 		postProcessApplicationContext(context);
+		// 调用所有初始化类的initialize方法
 		applyInitializers(context);
 		listeners.contextPrepared(context);
 		if (this.logStartupInfo) {
@@ -546,6 +559,7 @@ public class SpringApplication {
 	}
 
 	private Banner printBanner(ConfigurableEnvironment environment) {
+		// 是否打印Spring Banner
 		if (this.bannerMode == Banner.Mode.OFF) {
 			return null;
 		}
